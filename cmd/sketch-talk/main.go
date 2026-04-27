@@ -56,7 +56,7 @@ func main() {
 			}
 
 			<-ctx.Done()
-			orch.Shutdown(cfg.OutputPath)
+			orch.Shutdown(cfg.OutputPath, cfg.QuestionsPath)
 			return nil
 		},
 	}
@@ -69,6 +69,7 @@ func main() {
 	f.StringVar(&cfg.ConferenceTag, "hashtag", "", "Conference hashtag (e.g. #gophercon2025)")
 	f.StringVar(&cfg.SlidesPath, "slides", "", "Path to slides PDF")
 	f.StringVar(&cfg.OutputPath, "output", cfg.OutputPath, "Output file path (.png)")
+	f.StringVar(&cfg.QuestionsPath, "questions-output", cfg.QuestionsPath, "Path to save audience questions")
 	f.StringVar(&cfg.ListenAddr, "port", cfg.ListenAddr, "HTTP listen address")
 	f.IntVar(&cfg.AudioDeviceIndex, "audio-device", cfg.AudioDeviceIndex, "Audio device index (-1 = default)")
 	f.IntVar(&cfg.ChunkSeconds, "chunk-seconds", cfg.ChunkSeconds, "Audio chunk length in seconds")

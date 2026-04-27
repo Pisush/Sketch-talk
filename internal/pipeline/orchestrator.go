@@ -12,6 +12,7 @@ import (
 	"github.com/pisush/sketch-talk/internal/ai"
 	"github.com/pisush/sketch-talk/internal/audio"
 	"github.com/pisush/sketch-talk/internal/config"
+	"github.com/pisush/sketch-talk/internal/questions"
 	"github.com/pisush/sketch-talk/internal/renderer"
 	"github.com/pisush/sketch-talk/internal/server"
 	"github.com/pisush/sketch-talk/internal/slides"
@@ -20,16 +21,17 @@ import (
 
 // Orchestrator wires all subsystems together.
 type Orchestrator struct {
-	cfg      *config.TalkConfig
-	claude   anthropicsdk.Client
-	whisper  *transcription.Client
-	canvas   *renderer.Canvas
-	animator *renderer.Animator
-	hub      *server.Hub
-	srv      *server.Server
-	frameCh  chan []byte
-	primary  renderer.Color
-	liveSeq  int // counter for live_NNN element IDs
+	cfg       *config.TalkConfig
+	claude    anthropicsdk.Client
+	whisper   *transcription.Client
+	canvas    *renderer.Canvas
+	animator  *renderer.Animator
+	hub       *server.Hub
+	srv       *server.Server
+	frameCh   chan []byte
+	primary   renderer.Color
+	liveSeq   int // counter for live_NNN element IDs
+	questions *questions.Store
 }
 
 // New creates and returns a new Orchestrator.
@@ -39,22 +41,24 @@ func New(cfg *config.TalkConfig) (*Orchestrator, error) {
 		return nil, fmt.Errorf("create canvas: %w", err)
 	}
 
+	qs := questions.NewStore()
 	hub := server.NewHub()
-	srv := server.NewServer(hub)
+	srv := server.NewServer(hub, qs)
 	frameCh := make(chan []byte, 32)
 
 	animator := renderer.NewAnimator(canvas, frameCh)
 
 	return &Orchestrator{
-		cfg:     cfg,
-		claude:  ai.NewClient(cfg.AnthropicAPIKey),
-		whisper: transcription.NewClient(cfg.OpenAIAPIKey),
-		canvas:  canvas,
-		animator: animator,
-		hub:     hub,
-		srv:     srv,
-		frameCh: frameCh,
-		primary: renderer.PrimaryColorFor("blue"),
+		cfg:       cfg,
+		claude:    ai.NewClient(cfg.AnthropicAPIKey),
+		whisper:   transcription.NewClient(cfg.OpenAIAPIKey),
+		canvas:    canvas,
+		animator:  animator,
+		hub:       hub,
+		srv:       srv,
+		frameCh:   frameCh,
+		primary:   renderer.PrimaryColorFor("blue"),
+		questions: qs,
 	}, nil
 }
 
@@ -263,19 +267,26 @@ func (o *Orchestrator) pushSnapshot() {
 	}
 }
 
-// Shutdown stops the animator and exports the final sketchnote.
-func (o *Orchestrator) Shutdown(outputPath string) {
+// Shutdown stops the animator and exports the final sketchnote and questions.
+func (o *Orchestrator) Shutdown(outputPath, questionsPath string) {
 	log.Println("Shutting down…")
 	o.animator.Stop()
 
-	// Wait briefly for final frames to drain.
 	time.Sleep(300 * time.Millisecond)
 
 	png := o.canvas.Snapshot()
 	if err := savePNG(png, outputPath); err != nil {
-		log.Printf("save: %v", err)
+		log.Printf("save sketchnote: %v", err)
 	} else {
 		log.Printf("Sketchnote saved to %s", outputPath)
+	}
+
+	if questionsPath != "" && o.questions.Count() > 0 {
+		if err := o.questions.Export(questionsPath); err != nil {
+			log.Printf("save questions: %v", err)
+		} else {
+			log.Printf("%d question(s) saved to %s", o.questions.Count(), questionsPath)
+		}
 	}
 }
 

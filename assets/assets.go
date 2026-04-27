@@ -6,5 +6,5 @@ import "embed"
 //go:embed fonts/*.ttf
 var FontFS embed.FS
 
-//go:embed web/index.html
+//go:embed web
 var WebFS embed.FS

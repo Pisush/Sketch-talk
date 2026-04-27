@@ -13,6 +13,7 @@ type TalkConfig struct {
 	OpenAIAPIKey    string
 
 	OutputPath       string
+	QuestionsPath    string
 	ListenAddr       string
 	AudioDeviceIndex int
 	ChunkSeconds     int
@@ -24,6 +25,7 @@ type TalkConfig struct {
 func Default() *TalkConfig {
 	return &TalkConfig{
 		OutputPath:       "./sketchnote.png",
+		QuestionsPath:    "./questions.txt",
 		ListenAddr:       ":8080",
 		AudioDeviceIndex: -1,
 		ChunkSeconds:     25,

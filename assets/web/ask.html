@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Ask a Question</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #0f0f0f;
+    color: #f0f0f0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 20px;
+  }
+  h1 { font-size: 22px; font-weight: 600; margin-bottom: 6px; color: #fff; }
+  .sub { font-size: 13px; color: #888; margin-bottom: 32px; }
+  form { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 14px; }
+  label { font-size: 12px; color: #aaa; text-transform: uppercase; letter-spacing: 0.08em; }
+  textarea, input[type=text] {
+    width: 100%;
+    background: #1c1c1c;
+    border: 1px solid #333;
+    border-radius: 10px;
+    color: #f0f0f0;
+    font-size: 16px;
+    padding: 14px;
+    outline: none;
+    resize: none;
+    font-family: inherit;
+    transition: border-color 0.2s;
+  }
+  textarea { min-height: 120px; }
+  textarea:focus, input[type=text]:focus { border-color: #4a90d9; }
+  button {
+    background: #4a90d9;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    border-radius: 10px;
+    padding: 16px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+  }
+  button:active { transform: scale(0.98); }
+  button:disabled { background: #333; color: #666; cursor: default; }
+  #feedback {
+    margin-top: 20px;
+    font-size: 15px;
+    text-align: center;
+    color: #5cc878;
+    min-height: 24px;
+  }
+  #count { font-size: 12px; color: #555; text-align: center; margin-top: 24px; }
+</style>
+</head>
+<body>
+<h1>Ask a Question</h1>
+<p class="sub">Your question will appear on the sketchnote display</p>
+
+<form id="qform">
+  <div>
+    <label for="qtext">Your question</label>
+    <textarea id="qtext" placeholder="What did you want to know?" maxlength="280" required></textarea>
+  </div>
+  <div>
+    <label for="qasker">Your name or handle <span style="color:#555">(optional)</span></label>
+    <input type="text" id="qasker" placeholder="@yourhandle" maxlength="60">
+  </div>
+  <button type="submit" id="submit-btn">Send Question</button>
+</form>
+
+<div id="feedback"></div>
+<div id="count"></div>
+
+<script>
+(function() {
+  const form = document.getElementById('qform');
+  const fb = document.getElementById('feedback');
+  const btn = document.getElementById('submit-btn');
+  const countEl = document.getElementById('count');
+
+  function updateCount() {
+    fetch('/questions/count')
+      .then(r => r.json())
+      .then(d => {
+        countEl.textContent = d.count === 0 ? '' :
+          d.count === 1 ? '1 question asked so far' :
+          d.count + ' questions asked so far';
+      }).catch(() => {});
+  }
+
+  updateCount();
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const text = document.getElementById('qtext').value.trim();
+    const asker = document.getElementById('qasker').value.trim();
+    if (!text) return;
+
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+    fb.textContent = '';
+
+    try {
+      const res = await fetch('/ask', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({text, asker}),
+      });
+      if (res.ok) {
+        fb.textContent = '✓ Question sent!';
+        document.getElementById('qtext').value = '';
+        updateCount();
+        setTimeout(() => { fb.textContent = ''; }, 3000);
+      } else {
+        fb.style.color = '#e06060';
+        fb.textContent = 'Failed to send. Try again.';
+        fb.style.color = '#5cc878';
+      }
+    } catch {
+      fb.style.color = '#e06060';
+      fb.textContent = 'Network error. Try again.';
+      fb.style.color = '#5cc878';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Send Question';
+    }
+  });
+})();
+</script>
+</body>
+</html>
