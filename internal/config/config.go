@@ -18,6 +18,7 @@ type TalkConfig struct {
 	ChunkSeconds     int
 	OverlapSeconds   int
 	JPEGQuality      int // 0 = PNG, 1-100 = JPEG
+	NoAudio          bool
 }
 
 func Default() *TalkConfig {

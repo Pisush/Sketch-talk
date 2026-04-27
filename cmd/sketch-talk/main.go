@@ -32,8 +32,8 @@ func main() {
 			if cfg.AnthropicAPIKey == "" {
 				return fmt.Errorf("ANTHROPIC_API_KEY environment variable is required")
 			}
-			if cfg.OpenAIAPIKey == "" {
-				return fmt.Errorf("OPENAI_API_KEY environment variable is required")
+			if cfg.OpenAIAPIKey == "" && !cfg.NoAudio {
+				return fmt.Errorf("OPENAI_API_KEY environment variable is required (or use --no-audio)")
 			}
 
 			orch, err := pipeline.New(cfg)
@@ -72,8 +72,10 @@ func main() {
 	f.StringVar(&cfg.ListenAddr, "port", cfg.ListenAddr, "HTTP listen address")
 	f.IntVar(&cfg.AudioDeviceIndex, "audio-device", cfg.AudioDeviceIndex, "Audio device index (-1 = default)")
 	f.IntVar(&cfg.ChunkSeconds, "chunk-seconds", cfg.ChunkSeconds, "Audio chunk length in seconds")
+	f.BoolVar(&cfg.NoAudio, "no-audio", false, "Disable audio capture (display-only mode)")
 
 	root.AddCommand(run)
+	root.AddCommand(newGenerateDemoCmd())
 
 	if err := root.Execute(); err != nil {
 		log.Fatal(err)

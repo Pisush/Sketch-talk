@@ -166,6 +166,12 @@ func (o *Orchestrator) enqueueElement(el ai.SketchElement) {
 
 // runAudioPipeline starts audio capture, chunking, transcription, and Claude processing.
 func (o *Orchestrator) runAudioPipeline(ctx context.Context) error {
+	if o.cfg.NoAudio {
+		log.Println("Audio disabled (--no-audio); skipping mic capture and transcription.")
+		<-ctx.Done()
+		return nil
+	}
+
 	sampleCh := make(chan []int16, 128)
 	chunkCh := make(chan audio.AudioChunk, 4)
 	transcriptCh := make(chan transcription.TranscriptSegment, 4)
